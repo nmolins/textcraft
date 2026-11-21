@@ -75,6 +75,30 @@ impl eframe::App for App {
                 }
                 continue;
             }
+            // "press:x,y" / "move:x,y" / "release:x,y": a mouse drag in steps (the button
+            // stays down between press and release, so the pointer can be held at an edge).
+            for (prefix, pressed) in [("press:", Some(true)), ("move:", None), ("release:", Some(false))] {
+                if let Some(rest) = pt.strip_prefix(prefix) {
+                    let mut it = rest.split(',').filter_map(|v| v.trim().parse::<f32>().ok());
+                    if let (Some(x), Some(y)) = (it.next(), it.next()) {
+                        let pos = egui::pos2(x, y);
+                        if self.frame >= at && self.frame < at + 20 {
+                            raw.events.push(egui::Event::PointerMoved(pos));
+                        }
+                        if let (true, Some(pressed)) = (self.frame == at, pressed) {
+                            raw.events.push(egui::Event::PointerButton {
+                                pos,
+                                button: egui::PointerButton::Primary,
+                                pressed,
+                                modifiers: Default::default(),
+                            });
+                        }
+                    }
+                }
+            }
+            if pt.starts_with("press:") || pt.starts_with("move:") || pt.starts_with("release:") || pt == "wait" {
+                continue;
+            }
             if pt == "key:enter" {
                 if self.frame == at || self.frame == at + 1 {
                     raw.events.push(egui::Event::Key {

@@ -547,6 +547,12 @@ impl App {
             sa = sa.vertical_scroll_offset(y.max(0.0));
         }
         let view_h = ui.available_height();
+        let text_w = doc.text_w;
+        // How far the page can still scroll each way (from the last frame).
+        let room_left = doc.scroll_x.max(0.0);
+        let room_right = (doc.content_w - doc.view_w - doc.scroll_x).max(0.0);
+        let room_up = doc.scroll_y.max(0.0);
+        let room_down = (doc.content_h - doc.view_h - doc.scroll_y).max(0.0);
         let out = sa.show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
@@ -564,7 +570,7 @@ impl App {
                     .frame(egui::Frame::NONE)
                     .lock_focus(true)
                     .desired_width(f32::INFINITY)
-                    .min_size(Vec2::new(0.0, view_h))
+                    .min_size(Vec2::new(if wrap { 0.0 } else { text_w + 80.0 }, view_h))
                     .margin(egui::Margin::symmetric(10, 4))
                     .layouter(&mut layouter)
                     .show(ui);
@@ -602,6 +608,38 @@ impl App {
                         doc.row_h = rh;
                     }
                 }
+                let new_w = output.galley.rect.width();
+                if (new_w - doc.text_w).abs() > 0.5 {
+                    doc.text_w = new_w;
+                    ui.ctx().request_repaint();
+                }
+
+                // Selecting with the mouse past an edge keeps scrolling that way,
+                // faster the further the pointer goes.
+                let clip0 = ui.clip_rect();
+                let text_left = clip0.left() + gutter_w;
+                if output.response.dragged() {
+                    if let Some(pos) = ui.input(|i| i.pointer.interact_pos()) {
+                        let edge = 28.0;
+                        let speed = |d: f32| (d * 0.35).clamp(3.0, 70.0);
+                        let mut delta = Vec2::ZERO;
+                        // Never push past the ends of the page.
+                        if !wrap && pos.x > clip0.right() - edge {
+                            delta.x = -speed(pos.x - (clip0.right() - edge)).min(room_right);
+                        } else if !wrap && pos.x < text_left + edge {
+                            delta.x = speed(text_left + edge - pos.x).min(room_left);
+                        }
+                        if pos.y > clip0.bottom() - edge {
+                            delta.y = -speed(pos.y - (clip0.bottom() - edge)).min(room_down);
+                        } else if pos.y < clip0.top() + edge {
+                            delta.y = speed(clip0.top() + edge - pos.y).min(room_up);
+                        }
+                        if delta.length() > 0.5 {
+                            ui.scroll_with_delta_animation(delta, egui::style::ScrollAnimation::none());
+                            ui.ctx().request_repaint();
+                        }
+                    }
+                }
                 if let Some(cr) = output.cursor_range {
                     let pi = cr.primary.index.0;
                     let si = cr.secondary.index.0;
@@ -611,6 +649,8 @@ impl App {
                 }
 
                 let clip = ui.clip_rect();
+                // The number column stays put when the page scrolls sideways.
+                let gutter = egui::Rect::from_min_max(egui::pos2(clip.left(), gutter.top()), egui::pos2(clip.left() + gutter_w, gutter.bottom()));
                 let top = output.galley_pos.y;
                 let rh = doc.row_h;
                 let first = ((clip.top() - top) / rh).floor().max(0.0) as usize;
@@ -643,7 +683,7 @@ impl App {
                 let has_focus = output.response.has_focus();
                 if cur_top < cur_bot {
                     let band = if has_focus { p.current_line } else { p.current_line.gamma_multiply(0.6) };
-                    shapes.push(Shape::rect_filled(egui::Rect::from_x_y_ranges(gutter.left()..=right, cur_top..=cur_bot), 0.0, band));
+                    shapes.push(Shape::rect_filled(egui::Rect::from_x_y_ranges(gutter.right()..=right, cur_top..=cur_bot), 0.0, band));
                 }
                 // ruler at a fixed column
                 if ruler > 0 {
@@ -663,13 +703,18 @@ impl App {
                         ));
                     }
                 }
+                ui.painter().set(bg, Shape::Vec(shapes));
+
+                // The number column is drawn over the text, so text scrolled under it is hidden.
+                let gcol = egui::Rect::from_x_y_ranges(gutter.left()..=gutter.right(), clip.top()..=clip.bottom());
+                ui.painter().rect_filled(gcol, 0.0, p.paper);
+                if cur_top < cur_bot {
+                    let band = if has_focus { p.current_line } else { p.current_line.gamma_multiply(0.6) };
+                    ui.painter().rect_filled(egui::Rect::from_x_y_ranges(gutter.left()..=gutter.right(), cur_top..=cur_bot), 0.0, band);
+                }
                 // red margin line like a school notebook
                 let mx = gutter.right() - 3.0;
-                shapes.push(Shape::line_segment(
-                    [egui::pos2(mx, clip.top()), egui::pos2(mx, clip.bottom())],
-                    Stroke::new(1.2, p.margin),
-                ));
-                ui.painter().set(bg, Shape::Vec(shapes));
+                ui.painter().line_segment([egui::pos2(mx, clip.top()), egui::pos2(mx, clip.bottom())], Stroke::new(1.2, p.margin));
 
                 let nfont = FontId::monospace(size * 0.86);
                 for (i, y0) in starts {
@@ -687,9 +732,13 @@ impl App {
                 }
             });
         });
-        doc.scroll_y = out.state.offset().y;
+        let off = out.state.clamped_offset();
+        doc.scroll_y = off.y;
+        doc.scroll_x = off.x;
         doc.view_h = out.inner_rect.height();
+        doc.view_w = out.inner_rect.width();
         doc.content_h = out.content_size.y;
+        doc.content_w = out.content_size.x;
     }
 
     pub fn palette_ui(&mut self, ctx: &egui::Context) {
