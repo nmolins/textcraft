@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=TextCraft
+GenericName=Éditeur de texte
+Comment=Un carnet de code rapide et simple
+Exec=@BIN@ %F
+Icon=textcraft
+Terminal=false
+Categories=Utility;TextEditor;Development;
+MimeType=text/plain;text/markdown;text/x-python;text/x-rust;text/html;text/css;application/json;
+StartupWMClass=textcraft

@@ -1,0 +1,37 @@
+// Bienvenue dans TextCraft : un carnet de code rapide et simple.
+//
+// Raccourcis utiles :
+//   Ctrl+P          ouvrir rapidement un fichier du dossier
+//   Ctrl+Maj+P      palette de commandes
+//   Ctrl+F / Ctrl+H chercher / remplacer
+//   Ctrl+G          aller à une ligne
+//   Ctrl+/          commenter la ligne
+//   Ctrl+B          panneau latéral
+
+/* Un petit exemple pour voir les couleurs d'encre. */
+struct Pinceau {
+    couleur: &'static str,
+    taille: u32,
+}
+
+impl Pinceau {
+    fn nouveau(couleur: &'static str) -> Self {
+        Pinceau { couleur, taille: 12 }
+    }
+
+    fn tracer(&self, points: &[(f32, f32)]) -> usize {
+        let mut longueur = 0;
+        for (x, y) in points {
+            if *x > 0.5 && *y < 3.0 {
+                longueur += 1;
+            }
+        }
+        println!("Trait {} de {} px", self.couleur, self.taille);
+        longueur
+    }
+}
+
+fn main() {
+    let p = Pinceau::nouveau("terre de Sienne");
+    p.tracer(&[(1.0, 2.0), (0.2, 4.5)]);
+}

@@ -1,0 +1,38 @@
+[package]
+name = "textcraft"
+version = "1.0.0"
+edition = "2021"
+description = "TextCraft, un carnet de code rapide et simple"
+build = "build.rs"
+
+[[bin]]
+name = "textcraft"
+path = "src/main.rs"
+
+[dependencies]
+eframe = "0.37"
+rfd = "0.18"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+arboard = "3"
+pulldown-cmark = { version = "0.13", default-features = false }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif"] }
+chacha20poly1305 = "0.10"
+sha2 = "0.10"
+getrandom = "0.3"
+socket2 = "0.6"
+if-addrs = "0.15"
+pbkdf2 = { version = "0.12", features = ["hmac"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 2
+
+# The standalone .exe: fast, small, no console window.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true

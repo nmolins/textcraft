@@ -1,0 +1,32 @@
+TextCraft pour Linux
+====================
+
+Installer
+---------
+1. Copiez le fichier « TextCraft-linux.tar.gz » sur le PC Linux (clé USB, réseau…).
+2. Ouvrez un terminal dans le dossier où il se trouve et tapez :
+
+       tar xzf TextCraft-linux.tar.gz
+       sh TextCraft-linux/install.sh
+
+3. TextCraft apparaît dans le menu des applications. Vous pouvez aussi taper
+   « textcraft » dans un terminal.
+
+Rien n'est installé pour tout le système : tout va dans votre dossier personnel
+(~/.local). Pour désinstaller, supprimez ~/.local/bin/textcraft et
+~/.local/share/applications/textcraft.desktop.
+
+Ce qu'il faut
+-------------
+Un Linux de bureau récent (Ubuntu 20.04 ou plus récent, Debian 11+, Fedora 32+,
+Linux Mint 20+…), en 64 bits (x86_64).
+
+Voir les onglets de l'autre ordinateur
+--------------------------------------
+Menu Outils > « Partage entre ordinateurs… » : cochez la case et saisissez
+le même code secret que sur le PC Windows. Les deux PC doivent être sur le
+même réseau. Si un pare-feu est actif sous Linux (ufw), autorisez les ports
+47821 (UDP) et 47822 (TCP) :
+
+    sudo ufw allow 47821/udp
+    sudo ufw allow 47822/tcp

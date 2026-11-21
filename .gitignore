@@ -1,0 +1,9 @@
+# Build outputs
+/target/
+/dist/
+
+# Test pictures and sample files made while developing
+/shots/
+
+# Machine-specific build setting (path to this computer's dlltool)
+/.cargo/config.toml
