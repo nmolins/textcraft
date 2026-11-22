@@ -173,13 +173,28 @@ pub fn computer_name() -> String {
     }
 }
 
-/// A code that is easy to type on both computers, e.g. "ocre-plume-4821".
+/// Words for suggested codes: no accents, so they type the same on every keyboard.
+const WORDS: [&str; 64] = [
+    "ocre", "sienne", "indigo", "sepia", "carmin", "craie", "fusain", "lavis", "pastel", "gouache", "encre", "cobalt",
+    "plume", "pinceau", "carnet", "papier", "palette", "atelier", "croquis", "toile", "gomme", "crayon", "chevalet", "cadre",
+    "vernis", "argile", "bronze", "cuivre", "ardoise", "sable", "lin", "coton", "laine", "soie", "osier", "cuir",
+    "nuage", "orage", "brume", "aurore", "falaise", "riviere", "colline", "foret", "jardin", "verger", "prairie", "marais",
+    "lanterne", "boussole", "horloge", "theiere", "violon", "tambour", "flute", "harpe", "renard", "hibou", "loutre", "heron",
+    "abeille", "castor", "mouette", "lynx",
+];
+
+/// A code that is easy to type on both computers but hard to guess,
+/// e.g. "ocre-plume-nuage-renard-4821" (about 37 bits of chance).
 pub fn suggest_code() -> String {
-    const A: [&str; 12] = ["ocre", "sienne", "indigo", "sepia", "carmin", "craie", "fusain", "lavis", "pastel", "gouache", "encre", "vermillon"];
-    const B: [&str; 12] = ["plume", "pinceau", "carnet", "papier", "palette", "atelier", "esquisse", "croquis", "toile", "gomme", "crayon", "chevalet"];
-    let r: [u8; 4] = random_bytes();
-    format!("{}-{}-{:04}", A[r[0] as usize % 12], B[r[1] as usize % 12], u16::from_le_bytes([r[2], r[3]]) % 10000)
+    let r: [u8; 8] = random_bytes();
+    // 256 is a multiple of 64, so every word is equally likely.
+    let w = |b: u8| WORDS[b as usize % WORDS.len()];
+    let n = u32::from_le_bytes([r[4], r[5], r[6], r[7]]) % 10000;
+    format!("{}-{}-{}-{}-{:04}", w(r[0]), w(r[1]), w(r[2]), w(r[3]), n)
 }
+
+/// Codes shorter than this are easy to guess for someone on the same network.
+pub const STRONG_CODE_LEN: usize = 16;
 
 fn lock(s: &Arc<Mutex<Shared>>) -> std::sync::MutexGuard<'_, Shared> {
     s.lock().unwrap_or_else(|e| e.into_inner())
@@ -491,6 +506,16 @@ fn serve(mut conn: TcpStream, s: Arc<Mutex<Shared>>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn suggested_codes_are_long_and_varied() {
+        let a = suggest_code();
+        let b = suggest_code();
+        assert_ne!(a, b);
+        assert_eq!(a.split('-').count(), 5, "{a}");
+        assert!(a.chars().count() >= STRONG_CODE_LEN, "{a}");
+        assert!(a.is_ascii(), "types the same on every keyboard: {a}");
+    }
 
     #[test]
     fn sealed_messages_need_the_right_code() {

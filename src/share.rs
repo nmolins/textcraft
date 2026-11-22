@@ -233,6 +233,7 @@ impl App {
             .show(ctx, |ui| {
                 ui.label("Voyez les onglets ouverts sur vos autres ordinateurs du réseau local, en lecture seule, pour copier-coller de l'un à l'autre.");
                 ui.add_space(8.0);
+                let code_len = self.share_code.trim().chars().count();
                 if ui.checkbox(&mut self.share_enabled, "Partager mes onglets avec mes autres ordinateurs").changed() {
                     apply = true;
                 }
@@ -248,8 +249,8 @@ impl App {
                         let r = ui.add(
                             egui::TextEdit::singleline(&mut self.share_code)
                                 .password(!self.share_show_code)
-                                .desired_width(170.0)
-                                .hint_text("au moins 6 caractères"),
+                                .desired_width(230.0)
+                                .hint_text("16 caractères ou plus conseillés"),
                         );
                         apply |= r.lost_focus();
                         let eye = if self.share_show_code { "Masquer" } else { "Afficher" };
@@ -263,6 +264,16 @@ impl App {
                         }
                     });
                     ui.end_row();
+
+                    if (6..net::STRONG_CODE_LEN).contains(&code_len) {
+                        ui.label("");
+                        ui.label(
+                            RichText::new("Code court : facile à deviner pour quelqu'un sur le même réseau. Utilisez « Générer » pour un code sûr.")
+                                .size(12.0)
+                                .color(p.accent),
+                        );
+                        ui.end_row();
+                    }
 
                     ui.label("Adresse d'un autre ordinateur");
                     let r = ui.add(
