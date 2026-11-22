@@ -104,6 +104,8 @@ pub enum Cmd {
     FontReset,
     ToggleRuled,
     Shortcuts,
+    CheckUpdates,
+    ToggleAutoUpdate,
     About,
 }
 
@@ -196,6 +198,11 @@ pub struct App {
     pub share_hint: String,
     pub share_show_code: bool,
     pub show_share: bool,
+    pub updater: crate::update::Updater,
+    pub update_auto: bool,
+    pub update_started: bool,
+    pub update_restarting: bool,
+    pub update_dismissed: Option<String>,
     /// Tab being renamed: (doc id, new name being typed, focus the field next frame).
     pub renaming: Option<(u64, String, bool)>,
     pub share_last_sync: f64,
@@ -263,6 +270,11 @@ impl App {
             share_hint: String::new(),
             share_show_code: false,
             show_share: false,
+            updater: Default::default(),
+            update_auto: true,
+            update_started: false,
+            update_restarting: false,
+            update_dismissed: None,
             renaming: None,
             share_last_sync: -10.0,
             md_fonts: false,
@@ -302,6 +314,7 @@ impl App {
         };
         // Pick up where the person left off (never in screenshot runs).
         if app.shot_path.is_none() {
+            crate::update::clean_leftovers();
             app.load_session();
         }
         for f in files {
@@ -677,6 +690,12 @@ impl App {
             Cmd::FontReset => self.font_size = 14.0,
             Cmd::ToggleRuled => self.ruled = !self.ruled,
             Cmd::Shortcuts => self.show_keys = true,
+            Cmd::CheckUpdates => {
+                self.update_dismissed = None;
+                self.flash(ctx, "Recherche des mises à jour…");
+                self.updater.check(ctx, true);
+            }
+            Cmd::ToggleAutoUpdate => self.update_auto = !self.update_auto,
             Cmd::About => self.show_about = true,
         }
     }
@@ -688,6 +707,7 @@ impl App {
             Cmd::ToggleSidebar => self.sidebar,
             Cmd::ToggleMinimap => self.minimap,
             Cmd::ToggleTabs => self.show_tabs,
+            Cmd::ToggleAutoUpdate => self.update_auto,
             Cmd::TogglePreview => d.preview && d.lang == Lang::Markdown,
             Cmd::ToggleAutoPreview => self.md_auto,
             Cmd::ToggleStatus => self.show_status,

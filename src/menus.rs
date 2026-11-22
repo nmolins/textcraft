@@ -234,6 +234,10 @@ pub fn menus() -> Vec<(&'static str, Vec<M>)> {
             "Aide",
             vec![
                 I("Raccourcis clavier", "", Cmd::Shortcuts),
+                Sep,
+                I("Rechercher des mises à jour…", "", Cmd::CheckUpdates),
+                I("Vérifier les mises à jour au démarrage", "", Cmd::ToggleAutoUpdate),
+                Sep,
                 I("À propos de TextCraft", "", Cmd::About),
             ],
         ),

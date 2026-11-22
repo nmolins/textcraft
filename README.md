@@ -17,6 +17,7 @@ Un carnet de code rapide et simple, sur papier crème et à l'encre.
 - **Partage entre ordinateurs** du réseau local : voir en lecture seule les onglets ouverts sur un autre PC, protégé par un code secret (tout est chiffré).
 - Renommer un onglet ou un fichier (double-clic sur l'onglet).
 - Deux thèmes : *papier crème* et *encre de nuit*.
+- **Mises à jour** : TextCraft regarde au démarrage s'il existe une nouvelle version (et sur demande : *Aide → Rechercher des mises à jour*). Un clic la télécharge, vérifie son empreinte, l'installe et relance l'application sans perdre les onglets.
 
 ## Installer
 
@@ -53,6 +54,19 @@ Le programme est ensuite dans `target/release/` (`textcraft.exe` sous Windows, `
   `cargo zigbuild --release --target x86_64-unknown-linux-gnu.2.31`
 
 Tests : `cargo test`.
+
+## Publier une nouvelle version
+
+1. Changez le numéro dans `Cargo.toml` (par exemple `version = "1.2.0"`), puis enregistrez dans git.
+2. Marquez la version et envoyez-la :
+
+   ```sh
+   git push
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+GitHub fabrique alors tout seul `TextCraft.exe`, `TextCraft-linux.tar.gz` et leurs empreintes (`SHA256SUMS.txt`), et les publie dans les Releases (voir l'onglet *Actions*). Les TextCraft déjà installés proposeront la mise à jour.
 
 ## Fabriqué avec
 

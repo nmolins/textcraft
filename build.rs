@@ -80,16 +80,18 @@ fn find_windres() -> Option<PathBuf> {
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/icon.rs");
-    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") || env::var("CARGO_CFG_TARGET_ENV").as_deref() != Ok("gnu") {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
         return;
     }
+    let msvc = env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc");
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     fs::write(out.join("app.ico"), make_ico(&[16, 24, 32, 48, 64, 128, 256])).unwrap();
     let version = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "0.1.0".into());
     let v: Vec<&str> = version.split('.').collect();
     let comma = format!("{},{},{},0", v.first().unwrap_or(&"0"), v.get(1).unwrap_or(&"0"), v.get(2).unwrap_or(&"0"));
+    let ico = out.join("app.ico").display().to_string().replace('\\', "\\\\");
     let rc = format!(
-        r#"1 ICON "app.ico"
+        r#"1 ICON "{ico}"
 1 VERSIONINFO
 FILEVERSION {comma}
 PRODUCTVERSION {comma}
@@ -113,6 +115,11 @@ END
 "#
     );
     fs::write(out.join("app.rc"), rc).unwrap();
+    if msvc {
+        // Microsoft toolchain (e.g. GitHub's build machines): rc.exe through embed-resource.
+        let _ = embed_resource::compile(out.join("app.rc"), embed_resource::NONE).manifest_optional();
+        return;
+    }
     let Some(windres) = find_windres() else {
         println!("cargo:warning=windres introuvable : le .exe n'aura pas d'icône");
         return;

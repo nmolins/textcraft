@@ -12,6 +12,7 @@ mod icon;
 mod markdown;
 mod session;
 mod theme;
+mod update;
 mod ui;
 
 use std::path::PathBuf;
@@ -164,6 +165,7 @@ impl eframe::App for App {
 
         self.shortcuts(ctx);
         self.share_tick(ctx);
+        self.update_tick(ctx);
         let p = *self.pal();
 
         let calm = self.distraction; // distraction-free: only the page
@@ -171,6 +173,10 @@ impl eframe::App for App {
             egui::Panel::top("menu")
                 .frame(egui::Frame::NONE.fill(p.panel).inner_margin(egui::Margin::symmetric(8, 4)))
                 .show(root, |ui| self.menu_bar(ui));
+        }
+
+        if !calm && !matches!(self.updater.state(), update::State::Idle | update::State::Checking { .. }) {
+            egui::Panel::top("update_banner").frame(egui::Frame::NONE).show(root, |ui| self.update_banner(ui));
         }
 
         if self.show_status && !calm {

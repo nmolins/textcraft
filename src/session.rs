@@ -29,6 +29,7 @@ pub struct Session {
     pub recent_files: Vec<PathBuf>,
     pub recent_folders: Vec<PathBuf>,
     pub md_auto: Option<bool>,
+    pub update_auto: Option<bool>,
     pub share_enabled: bool,
     pub share_code: String,
     pub share_name: String,
@@ -114,6 +115,7 @@ impl App {
             recent_files: self.recent_files.clone(),
             recent_folders: self.recent_folders.clone(),
             md_auto: Some(self.md_auto),
+            update_auto: Some(self.update_auto),
             share_enabled: self.share_enabled,
             share_code: self.share_code.clone(),
             share_name: self.share_name.clone(),
@@ -160,6 +162,7 @@ impl App {
         self.show_status = s.show_status.unwrap_or(true);
         self.wrap = s.wrap;
         self.md_auto = s.md_auto.unwrap_or(true);
+        self.update_auto = s.update_auto.unwrap_or(true);
         self.share_enabled = s.share_enabled;
         self.share_code = s.share_code.clone();
         self.share_name = s.share_name.clone();
