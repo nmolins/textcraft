@@ -6,6 +6,7 @@ mod menus;
 mod net;
 mod rename;
 mod share;
+mod display;
 mod doc;
 mod highlight;
 mod icon;
@@ -371,5 +372,7 @@ fn main() -> eframe::Result<()> {
             b.with_activate_ignoring_other_apps(false);
         }));
     }
+    #[cfg(target_os = "linux")]
+    display::choose(&mut options);
     eframe::run_native(APP_NAME, options, Box::new(move |cc| Ok(Box::new(App::new(cc, files, shot)))))
 }

@@ -3388,7 +3388,7 @@ dependencies = [
 
 [[package]]
 name = "textcraft"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "arboard",
  "chacha20poly1305",
@@ -3397,6 +3397,7 @@ dependencies = [
  "getrandom 0.3.4",
  "if-addrs",
  "image",
+ "libloading",
  "pbkdf2",
  "pulldown-cmark",
  "rfd",
@@ -3404,6 +3405,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "socket2",
+ "winit",
 ]
 
 [[package]]

@@ -383,6 +383,9 @@ impl App {
                         ui.label(RichText::new("✎").size(40.0).color(p.accent));
                         ui.label(RichText::new("TextCraft").size(22.0).strong());
                         ui.label(RichText::new(format!("version {}", env!("CARGO_PKG_VERSION"))).color(p.faint));
+                        if let Some(backend) = crate::display::backend() {
+                            ui.label(RichText::new(format!("Affichage : {backend}")).size(12.0).color(p.faint));
+                        }
                         ui.add_space(8.0);
                         ui.label("Un carnet de code rapide et simple,\nsur papier crème et à l'encre.");
                         ui.add_space(4.0);

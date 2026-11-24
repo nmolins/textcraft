@@ -1,6 +1,6 @@
 [package]
 name = "textcraft"
-version = "1.1.1"
+version = "1.1.2"
 edition = "2021"
 description = "TextCraft, un carnet de code rapide et simple"
 build = "build.rs"
@@ -23,6 +23,11 @@ getrandom = "0.3"
 socket2 = "0.6"
 if-addrs = "0.15"
 pbkdf2 = { version = "0.12", features = ["hmac"] }
+
+# Linux: file drops need X11 (see src/display.rs). Same winit as eframe's.
+[target.'cfg(target_os = "linux")'.dependencies]
+winit = { version = "0.30", default-features = false, features = ["x11"] }
+libloading = "0.8"
 
 [profile.dev]
 opt-level = 1

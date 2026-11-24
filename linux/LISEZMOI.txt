@@ -21,6 +21,20 @@ Ce qu'il faut
 Un Linux de bureau récent (Ubuntu 20.04 ou plus récent, Debian 11+, Fedora 32+,
 Linux Mint 20+…), en 64 bits (x86_64).
 
+Glisser-déposer des fichiers
+----------------------------
+Glissez un fichier sur la fenêtre pour l'ouvrir dans un nouvel onglet.
+Sous Wayland (Ubuntu récent), TextCraft passe pour cela par X11, aussi
+présent dans Ubuntu. Le menu Aide > À propos indique l'affichage utilisé.
+S'il annonce « Wayland, sans glisser-déposer », installez :
+
+    sudo apt install libxkbcommon-x11-0 libx11-xcb1 libxcursor1 libxi6
+
+Si le texte paraît flou (échelle d'affichage 125 % ou 150 %), lancez
+TextCraft sous Wayland, sans le glisser-déposer :
+
+    TEXTCRAFT_WAYLAND=1 textcraft
+
 Voir les onglets de l'autre ordinateur
 --------------------------------------
 Menu Outils > « Partage entre ordinateurs… » : cochez la case et saisissez
