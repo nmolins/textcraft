@@ -191,6 +191,8 @@ pub struct App {
     pub ruled: bool,
     pub show_tabs: bool,
     pub md_auto: bool,
+    /// Time of the current frame, for messages set outside the UI code.
+    pub now: f64,
     pub net: crate::net::Net,
     pub share_enabled: bool,
     pub share_code: String,
@@ -244,6 +246,28 @@ pub struct App {
 
 pub const WELCOME: &str = include_str!("welcome.rs.txt");
 
+/// Why a file can't be opened as text (None when it can). Looks at the first bytes only.
+pub fn not_text(path: &Path) -> Option<&'static str> {
+    use std::io::Read;
+    let mut head = [0u8; 8192];
+    let n = std::fs::File::open(path).and_then(|mut f| f.read(&mut head)).ok()?;
+    let head = &head[..n];
+    let starts = |sig: &[u8]| head.starts_with(sig);
+    if starts(b"%PDF") {
+        Some("est un PDF")
+    } else if starts(b"PK\x03\x04") {
+        Some("est un document Office ou une archive zip")
+    } else if starts(b"\x89PNG") || starts(b"\xFF\xD8\xFF") || starts(b"GIF8") || starts(b"RIFF") {
+        Some("est une image ou un fichier multimédia")
+    } else if starts(b"MZ") || starts(b"\x7FELF") {
+        Some("est un programme")
+    } else if head.contains(&0) && !starts(b"\xFF\xFE") && !starts(b"\xFE\xFF") {
+        Some("n'est pas un fichier texte")
+    } else {
+        None
+    }
+}
+
 fn push_recent(list: &mut Vec<PathBuf>, p: &Path) {
     list.retain(|x| x != p);
     list.insert(0, p.to_path_buf());
@@ -263,6 +287,7 @@ impl App {
             ruled: true,
             show_tabs: true,
             md_auto: true,
+            now: 0.0,
             net: crate::net::Net::new(),
             share_enabled: false,
             share_code: String::new(),
@@ -368,6 +393,11 @@ impl App {
     }
 
     pub fn open_path(&mut self, path: &Path) {
+        if let Some(kind) = not_text(path) {
+            let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            self.message = Some((format!("« {name} » {kind} : TextCraft n'ouvre que les fichiers texte"), self.now + 6.0));
+            return;
+        }
         push_recent(&mut self.recent_files, path);
         if let Some(i) = self.docs.iter().position(|d| d.path.as_deref() == Some(path)) {
             self.active = i;

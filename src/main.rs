@@ -59,6 +59,46 @@ impl App {
     }
 }
 
+/// A file "dropped" by the screenshot test aid.
+#[derive(Debug)]
+struct TestDrop(PathBuf);
+
+impl egui::DroppedFile for TestDrop {
+    fn path(&self) -> &std::path::Path {
+        &self.0
+    }
+    fn bytes(&self) -> Result<Vec<u8>, String> {
+        std::fs::read(&self.0).map_err(|e| e.to_string())
+    }
+}
+
+impl App {
+    /// While files are dragged over the window: a dashed "drop here" sheet.
+    fn drop_overlay(&self, ctx: &egui::Context) {
+        let names: Vec<String> = ctx.input(|i| {
+            i.raw.hovered_files.iter().filter_map(|f| f.path.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string())).collect()
+        });
+        let count = ctx.input(|i| i.raw.hovered_files.len());
+        if count == 0 {
+            return;
+        }
+        let p = *self.pal();
+        let screen = ctx.content_rect();
+        let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("drop_overlay")));
+        painter.rect_filled(screen, 0.0, p.paper.gamma_multiply(0.82));
+        let card = screen.shrink(28.0);
+        let corners = [card.left_top(), card.right_top(), card.right_bottom(), card.left_bottom(), card.left_top()];
+        for w in corners.windows(2) {
+            painter.extend(egui::Shape::dashed_line(&[w[0], w[1]], egui::Stroke::new(2.5, p.accent), 12.0, 8.0));
+        }
+        let title = if count == 1 { "Déposez pour ouvrir dans un nouvel onglet".to_string() } else { format!("Déposez pour ouvrir ces {count} fichiers") };
+        painter.text(card.center() - egui::vec2(0.0, 18.0), egui::Align2::CENTER_CENTER, title, egui::FontId::proportional(24.0), p.ink);
+        let list = if names.is_empty() { String::new() } else if names.len() <= 3 { names.join(", ") } else { format!("{}, … ({} fichiers)", names[..3].join(", "), names.len()) };
+        painter.text(card.center() + egui::vec2(0.0, 18.0), egui::Align2::CENTER_CENTER, list, egui::FontId::proportional(15.0), p.faint);
+        ctx.request_repaint();
+    }
+}
+
 impl eframe::App for App {
     /// Test aid for screenshot runs only: TEXTCRAFT_TEST_CLICKS="x,y;x,y" clicks those
     /// points (one every 20 frames from frame 30), e.g. to photograph an open menu.
@@ -98,6 +138,20 @@ impl eframe::App for App {
                 }
             }
             if pt.starts_with("press:") || pt.starts_with("move:") || pt.starts_with("release:") || pt == "wait" {
+                continue;
+            }
+            // "hover:path" keeps a file hovering from that step on; "drop:path" drops it.
+            if let Some(path) = pt.strip_prefix("hover:") {
+                if self.frame >= at && self.frame < at + 20 {
+                    raw.hovered_files = vec![egui::HoveredFile { path: Some(PathBuf::from(path)), ..Default::default() }];
+                }
+                continue;
+            }
+            if let Some(path) = pt.strip_prefix("drop:") {
+                if self.frame == at {
+                    raw.hovered_files.clear();
+                    raw.dropped_files.push(Arc::new(TestDrop(PathBuf::from(path))));
+                }
                 continue;
             }
             if pt == "key:enter" {
@@ -148,14 +202,27 @@ impl eframe::App for App {
         };
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
 
-        // Files and folders dropped onto the window
+        self.now = ctx.input(|i| i.time);
+        // Files and folders dropped onto the window open in new tabs.
         let dropped: Vec<PathBuf> = ctx.input(|i| i.raw.dropped_files.iter().map(|f| f.path().to_path_buf()).collect());
-        for f in dropped {
-            if f.is_dir() {
-                self.open_folder(f);
-            } else {
-                self.open_path(&f);
+        if !dropped.is_empty() {
+            let mut opened = Vec::new();
+            for f in dropped {
+                if f.is_dir() {
+                    self.open_folder(f.clone());
+                    opened.push(format!("dossier {}", f.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()));
+                } else if app::not_text(&f).is_none() {
+                    self.open_path(&f);
+                    opened.push(f.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default());
+                } else {
+                    self.open_path(&f); // shows why it can't be opened
+                }
             }
+            if !opened.is_empty() {
+                self.flash(ctx, format!("Ouvert : {}", opened.join(", ")));
+            }
+            ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+            self.focus_editor(ctx);
         }
 
         let size = self.font_size;
@@ -245,6 +312,7 @@ impl eframe::App for App {
             }
         }
         self.help_windows(ctx);
+        self.drop_overlay(ctx);
         self.share_window(ctx);
         self.rename_window(ctx);
         self.palette_ui(ctx);
